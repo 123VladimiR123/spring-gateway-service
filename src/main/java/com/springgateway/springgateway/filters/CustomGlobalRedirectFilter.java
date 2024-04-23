@@ -3,6 +3,8 @@ package com.springgateway.springgateway.filters;
 import com.springgateway.springgateway.kafka.KafkaSender;
 import com.springgateway.springgateway.responseDistributor.CustomDistributor;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -21,6 +23,9 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class CustomGlobalRedirectFilter implements GlobalFilter, Ordered {
 
+    //ToDo
+    private final Logger logger = LoggerFactory.getLogger(Logger.class);
+
     @Value("${jwt.cookie.name}")
     private String cookie;
     private final CustomDistributor distributor;
@@ -31,17 +36,26 @@ public class CustomGlobalRedirectFilter implements GlobalFilter, Ordered {
         if (ServerWebExchangeUtils.isAlreadyRouted(exchange))
             return chain.filter(exchange);
 
+        logger.debug(exchange.getRequest().getPath().toString());
+
         if (!exchange.getRequest().getCookies().containsKey(cookie)) {
-            redirectToLogin(exchange);
+            if (!exchange.getRequest().getPath().toString().equals("/login") &&
+                    !exchange.getRequest().getPath().toString().equals("/registration")) {
+                redirectToLogin(exchange);
+            }
             return chain.filter(exchange);
         }
 
         String id = UUID.randomUUID().toString();
-        sender.sendMessage(id + ' ' + exchange.getRequest().getCookies().get(cookie));
+        sender.sendMessage(id + ' ' + exchange.getRequest().getCookies().get(cookie).getFirst().getValue());
 
         try {
             distributor.getLock(id).tryAcquire(2, TimeUnit.SECONDS);
-            exchange.getRequest().getHeaders().add("email", distributor.getResult(id));
+            String result = distributor.getResult(id);
+
+            if (result == null || result.equals("")) throw new InterruptedException("wrong jwt");
+
+            exchange.getRequest().mutate().header("email", result).build();
         } catch (InterruptedException ignored) {
             redirectToLogin(exchange);
         }
