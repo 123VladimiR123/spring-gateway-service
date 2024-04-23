@@ -17,6 +17,4 @@ public class CustomKafkaListener {
         String[] parsed = response.split(" ");
         distributor.putResponse(parsed[0], (parsed.length > 1) ? parsed[1] : "");
     }
-
-
 }

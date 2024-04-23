@@ -28,6 +28,9 @@ public class CustomGlobalRedirectFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        if (ServerWebExchangeUtils.isAlreadyRouted(exchange))
+            return chain.filter(exchange);
+
         if (!exchange.getRequest().getCookies().containsKey(cookie)) {
             redirectToLogin(exchange);
             return chain.filter(exchange);
@@ -49,7 +52,7 @@ public class CustomGlobalRedirectFilter implements GlobalFilter, Ordered {
 
     @Override
     public int getOrder() {
-        return Integer.MIN_VALUE + 100;
+        return 0;
     }
 
     private void redirectToLogin(ServerWebExchange exchange) {
