@@ -16,11 +16,8 @@ import java.util.Map;
 @Configuration
 public class KafkaConsumerFactory {
 
-    @Value("${custom.kafka.address}")
-    private String kafkaServer;
-
     @Bean
-    public ConsumerFactory<String, String> consumerFactory() {
+    public ConsumerFactory<String, String> consumerFactory(@Value("${custom.kafka.address}") String kafkaServer) {
         Map<String, Object> map = new HashMap<>();
         map.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaServer);
         map.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);

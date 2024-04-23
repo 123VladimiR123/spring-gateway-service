@@ -12,7 +12,7 @@ public class CustomKafkaListener {
 
     private final CustomDistributor distributor;
 
-    @KafkaListener(topics = "#{'${custom.kafka.topics.response}'.split(',')}")
+    @KafkaListener(topics = "#{'${custom.kafka.topics.response}'.split(',')}", groupId = "default-gateway-consumer")
     void listener(String response) {
         String[] parsed = response.split(" ");
         distributor.putResponse(parsed[0], (parsed.length > 1) ? parsed[1] : "");
