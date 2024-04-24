@@ -15,7 +15,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import javax.print.DocFlavor;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -23,8 +26,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class CustomGlobalRedirectFilter implements GlobalFilter, Ordered {
 
-    //ToDo
-    private final Logger logger = LoggerFactory.getLogger(Logger.class);
+    private final List<String> paths = List.of("/login", "/registration", "/logout");
 
     @Value("${jwt.cookie.name}")
     private String cookie;
@@ -36,11 +38,8 @@ public class CustomGlobalRedirectFilter implements GlobalFilter, Ordered {
         if (ServerWebExchangeUtils.isAlreadyRouted(exchange))
             return chain.filter(exchange);
 
-        logger.debug(exchange.getRequest().getPath().toString());
-
         if (!exchange.getRequest().getCookies().containsKey(cookie)) {
-            if (!exchange.getRequest().getPath().toString().equals("/login") &&
-                    !exchange.getRequest().getPath().toString().equals("/registration")) {
+            if (!paths.contains(exchange.getRequest().getPath().toString())) {
                 redirectToLogin(exchange);
             }
             return chain.filter(exchange);
@@ -49,14 +48,18 @@ public class CustomGlobalRedirectFilter implements GlobalFilter, Ordered {
         String id = UUID.randomUUID().toString();
         sender.sendMessage(id + ' ' + exchange.getRequest().getCookies().get(cookie).getFirst().getValue());
 
+        String result = "";
+
         try {
             distributor.getLock(id).tryAcquire(2, TimeUnit.SECONDS);
-            String result = distributor.getResult(id);
+            result = distributor.getResult(id);
 
-            if (result == null || result.equals("")) throw new InterruptedException("wrong jwt");
-
-            exchange.getRequest().mutate().header("email", result).build();
+            if (result == null || result.equals(""))
+                redirectToLogout(exchange);
+            else
+                exchange.getRequest().mutate().header("email", result).build();
         } catch (InterruptedException ignored) {
+
             redirectToLogin(exchange);
         }
 
@@ -71,6 +74,12 @@ public class CustomGlobalRedirectFilter implements GlobalFilter, Ordered {
 
     private void redirectToLogin(ServerWebExchange exchange) {
         exchange.getResponse().getHeaders().setLocation(URI.create("/login"));
+        exchange.getResponse().setStatusCode(HttpStatus.TEMPORARY_REDIRECT);
+        ServerWebExchangeUtils.setAlreadyRouted(exchange);
+    }
+
+    private void redirectToLogout(ServerWebExchange exchange) {
+        exchange.getResponse().getHeaders().setLocation(URI.create("/logout"));
         exchange.getResponse().setStatusCode(HttpStatus.TEMPORARY_REDIRECT);
         ServerWebExchangeUtils.setAlreadyRouted(exchange);
     }
