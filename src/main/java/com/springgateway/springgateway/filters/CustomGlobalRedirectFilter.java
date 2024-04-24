@@ -34,8 +34,10 @@ public class CustomGlobalRedirectFilter implements GlobalFilter, Ordered {
         if (ServerWebExchangeUtils.isAlreadyRouted(exchange))
             return chain.filter(exchange);
 
-        if (exchange.getRequest().getPath().toString().equals("/logout"))
+        if (exchange.getRequest().getPath().toString().equals("/logout")) {
+            ServerWebExchangeUtils.setAlreadyRouted(exchange);
             return chain.filter(exchange);
+        }
 
         if (!exchange.getRequest().getCookies().containsKey(cookie)) {
             if (!paths.contains(exchange.getRequest().getPath().toString())) {
