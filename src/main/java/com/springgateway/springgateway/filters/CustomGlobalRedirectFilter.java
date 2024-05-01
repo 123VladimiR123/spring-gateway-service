@@ -24,6 +24,9 @@ public class CustomGlobalRedirectFilter implements GlobalFilter, Ordered {
 
     private final List<String> paths = List.of("/login", "/registration", "/logout");
 
+    @Value("${custom.gateway.address}")
+    private String prefix;
+
     @Value("${jwt.cookie.name}")
     private String cookie;
     private final CustomDistributor distributor;
