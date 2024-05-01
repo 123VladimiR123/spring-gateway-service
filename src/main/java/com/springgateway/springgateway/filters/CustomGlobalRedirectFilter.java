@@ -24,9 +24,6 @@ public class CustomGlobalRedirectFilter implements GlobalFilter, Ordered {
 
     private final List<String> paths = List.of("/login", "/registration", "/logout");
 
-    @Value("${custom.gateway.address}")
-    private String prefix;
-
     @Value("${jwt.cookie.name}")
     private String cookie;
     private final CustomDistributor distributor;
@@ -37,7 +34,7 @@ public class CustomGlobalRedirectFilter implements GlobalFilter, Ordered {
         if (ServerWebExchangeUtils.isAlreadyRouted(exchange))
             return chain.filter(exchange);
 
-        if (exchange.getRequest().getPath().toString().equals("/logout")) {
+        if (paths.contains(exchange.getRequest().getPath().toString())) {
             ServerWebExchangeUtils.setAlreadyRouted(exchange);
             return chain.filter(exchange);
         }
