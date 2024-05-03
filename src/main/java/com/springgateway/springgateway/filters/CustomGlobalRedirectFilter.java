@@ -35,7 +35,6 @@ public class CustomGlobalRedirectFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange);
 
         if (paths.contains(exchange.getRequest().getPath().toString())) {
-            ServerWebExchangeUtils.setAlreadyRouted(exchange);
             return chain.filter(exchange);
         }
 
